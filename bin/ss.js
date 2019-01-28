@@ -60,43 +60,8 @@ function init() {
 
 // configure the program
 program
-  .command("add <alias|path> [path]")
-  .description(`Add a target folder, if only <path> is given, last path component will be used as <alias>`)
-  .action((alias, path) => {
-    if (!path) {
-      alias = undefined;
-      path = alias;
-    }
-
-    path = p.resolve(path);
-
-    if (!exists(path)) return error(`Target path "${path}" doesn's exist`);
-    if (!isDirectory(path)) return error(`Target path "${path}" is not a directory`);
-
-    if (!alias) alias = p.basename(path);
-    alias = alias.replace(/\s/g, "_");
-
-    if (alias.includes('/')) {
-      return error('Alias must not contain slash "/" charactor')
-    }
-
-    const source = p.resolve(path);
-    const target = p.resolve(AVAILABLE, alias);
-    try {
-      fs.symlinkSync(source, target, "dir");
-    } catch (err) {
-      if (err.code === "EEXIST") {
-        fs.unlinkSync(target);
-        fs.symlinkSync(source, target, "dir");
-      } else {
-        console.log(chalk`{red ERROR:} Unknow error`, err);
-      }
-    }
-  });
-
-program
   .command("ls")
-  .description(`List added target folders`)
+  .description(`List added aliases and target folders`)
   .action(() => {
     const printAliases = () => {
       const aliases = fs.readdirSync(AVAILABLE);
@@ -151,6 +116,42 @@ program
       registerShutdown(() => server.close());
       console.log("listening on port :8888");
     });
+  });
+
+program
+  .command("add <alias|path> [path]")
+  .description(`Add a target folder. If only <path> is given, last path component will be used as <alias>`)
+  .action((alias, path) => {
+    if (!path) {
+      alias = undefined;
+      path = alias;
+    }
+
+    path = p.resolve(path);
+
+    if (!exists(path)) return error(`Target path "${path}" doesn's exist`);
+    if (!isDirectory(path)) return error(`Target path "${path}" is not a directory`);
+
+    if (!alias) alias = p.basename(path);
+    alias = alias.replace(/\s/g, "_");
+
+    if (alias.includes("/")) {
+      return error('Alias must not contain slash "/" charactor');
+    }
+
+    const source = p.resolve(path);
+    const target = p.resolve(AVAILABLE, alias);
+    try {
+      fs.symlinkSync(source, target, "dir");
+    } catch (err) {
+      if (err.code === "EEXIST") {
+        // TODO: ask user if should override
+        fs.unlinkSync(target);
+        fs.symlinkSync(source, target, "dir");
+      } else {
+        console.log(chalk`{red ERROR:} Unknow error`, err);
+      }
+    }
   });
 
 function main() {
