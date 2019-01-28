@@ -49,7 +49,7 @@ program
       return console.log("Invalid args. `ss add [alias] [path]`");
     }
 
-    const missingAlias = false;
+    let missingAlias = false;
     if (!path) {
       missingAlias = true;
       path = alias;
@@ -83,16 +83,42 @@ function getRealpath(alias) {
   return fs.realpathSync(path);
 }
 
+function getCurrentPath() {
+  const path = p.resolve(CURRENT);
+  return fs.realpathSync(path);
+}
+
+function padded(str, length) {
+  return str + ' '.repeat(length - str.length);
+}
+
 program
   .command("ls")
   .description(`List added target folders`)
   .action(() => {
-    const aliases = fs.readdirSync(AVAILABLE);
+    const printAliases = () => {
+      const aliases = fs.readdirSync(AVAILABLE);
+      const longest = aliases.reduce((a, b) => {
+        if (a.length > b.length) return a;
+        return b;
+      });
+  
+      const aliasFixWidth = longest.length + 1;
+  
+      return aliases.reduce((acc, alias) => {
+        const realpath = getRealpath(alias);
+        acc += `${padded(alias, aliasFixWidth)}-> ${realpath}\n`;
+        return acc;
+      }, '');
+    }
 
-    aliases.forEach(alias => {
-      const realpath = getRealpath(alias);
-      console.log(`${alias}\t-->\t${realpath}`);
-    });
+    console.log(chalk`
+{green Current target: }
+${getCurrentPath()}
+
+{green Aliases:}
+${printAliases()}
+`);    
   });
 
 program
