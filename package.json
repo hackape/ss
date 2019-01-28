@@ -1,0 +1,26 @@
+{
+  "name": "@hackape/ss",
+  "version": "0.1.0",
+  "description": "Static file server",
+  "files": [
+    "bin"
+  ],
+  "repository": "hackape/ss",
+  "bin": {
+    "ss": "./bin/ss.js"
+  },
+  "keywords": [
+    "now",
+    "serve",
+    "micro",
+    "http-server"
+  ],
+  "author": "hackape",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "commander": "^2.19.0",
+    "lodash": "^4.17.11",
+    "serve-handler": "^5.0.7"
+  }
+}
