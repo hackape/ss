@@ -14,18 +14,24 @@ const NSP = p.resolve(homedir, ".ss");
 const AVAILABLE = p.resolve(NSP, "available");
 const CURRENT = p.resolve(NSP, "current");
 
-function init() {
-  try {
-    fs.mkdirSync(NSP);
-    fs.mkdirSync(AVAILABLE);
-  } catch (err) {
-    // give up;
-  }
+const exists = path => fs.existsSync(path);
+const error = message => chalk`{red ERROR:} ${message}`;
+
+function getCurrentPath() {
+  const path = p.resolve(CURRENT);
+  return fs.realpathSync(path);
 }
 
-init();
+function getAliasRealpath(alias) {
+  // TODO: should handle non-exist path properly
+  const path = p.resolve(AVAILABLE, alias);
+  return fs.realpathSync(path);
+}
 
-const error = message => chalk`{red ERROR:} ${message}`;
+function padded(str, length) {
+  return str + " ".repeat(length - str.length);
+}
+
 function registerShutdown(fn) {
   let run = false;
 
@@ -41,6 +47,15 @@ function registerShutdown(fn) {
   process.on("exit", wrapper);
 }
 
+// initialization
+function init() {
+  if (!exists(NSP)) fs.mkdirSync(NSP);
+  if (!exists(AVAILABLE)) fs.mkdirSync(AVAILABLE);
+}
+
+init();
+
+// configure the program
 program
   .command("add <alias|path> [path]")
   .description(`Add a target folder, if only <path> is given, last path component will be used as <alias>`)
@@ -68,7 +83,9 @@ program
       alias = p.basename(path);
     }
 
-    alias = alias.replace(" ", "_");
+    alias = alias.replace(/\s/g, "_");
+
+    p.resolve(AVAILABLE, alias);
 
     try {
       fs.symlinkSync(p.resolve(path), p.resolve(AVAILABLE, alias), "dir");
@@ -76,21 +93,6 @@ program
       return console.log("Create symlink fail");
     }
   });
-
-function getRealpath(alias) {
-  // TODO: should handle non-exist path properly
-  const path = p.resolve(AVAILABLE, alias);
-  return fs.realpathSync(path);
-}
-
-function getCurrentPath() {
-  const path = p.resolve(CURRENT);
-  return fs.realpathSync(path);
-}
-
-function padded(str, length) {
-  return str + ' '.repeat(length - str.length);
-}
 
 program
   .command("ls")
@@ -102,15 +104,15 @@ program
         if (a.length > b.length) return a;
         return b;
       });
-  
+
       const aliasFixWidth = longest.length + 1;
-  
+
       return aliases.reduce((acc, alias) => {
-        const realpath = getRealpath(alias);
+        const realpath = getAliasRealpath(alias);
         acc += `${padded(alias, aliasFixWidth)}-> ${realpath}\n`;
         return acc;
-      }, '');
-    }
+      }, "");
+    };
 
     console.log(chalk`
 {green Current target: }
@@ -118,7 +120,7 @@ ${getCurrentPath()}
 
 {green Aliases:}
 ${printAliases()}
-`);    
+`);
   });
 
 program
@@ -128,7 +130,7 @@ program
     try {
       fs.unlinkSync(CURRENT);
     } catch (err) {}
-    fs.symlinkSync(getRealpath(alias), CURRENT, "dir");
+    fs.symlinkSync(getAliasRealpath(alias), CURRENT, "dir");
   });
 
 program
