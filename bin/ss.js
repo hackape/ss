@@ -149,9 +149,10 @@ program
         fs.unlinkSync(target);
         fs.symlinkSync(source, target, "dir");
       } else {
-        console.log(chalk`{red ERROR:} Unknow error`, err);
+        return console.log(chalk`{red ERROR:} Unknow error`, err);
       }
     }
+    return console.log(chalk`{green Add:} ${alias} -> ${getAliasRealpath(alias)}`);
   });
 
 function main() {
