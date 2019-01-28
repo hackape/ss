@@ -15,7 +15,9 @@ const AVAILABLE = p.resolve(NSP, "available");
 const CURRENT = p.resolve(NSP, "current");
 
 const exists = path => fs.existsSync(path);
-const error = message => chalk`{red ERROR:} ${message}`;
+const isDirectory = path => fs.lstatSync(path).isDirectory();
+const isSymlink = path => fs.lstatSync(path).isSymbolicLink();
+const error = message => console.error(chalk`{red ERROR:} ${message}`);
 
 function getCurrentPath() {
   const path = p.resolve(CURRENT);
@@ -23,9 +25,12 @@ function getCurrentPath() {
 }
 
 function getAliasRealpath(alias) {
-  // TODO: should handle non-exist path properly
   const path = p.resolve(AVAILABLE, alias);
-  return fs.realpathSync(path);
+  try {
+    return fs.realpathSync(path);
+  } catch (err) {
+    return "(null)";
+  }
 }
 
 function padded(str, length) {
@@ -53,44 +58,39 @@ function init() {
   if (!exists(AVAILABLE)) fs.mkdirSync(AVAILABLE);
 }
 
-init();
-
 // configure the program
 program
   .command("add <alias|path> [path]")
   .description(`Add a target folder, if only <path> is given, last path component will be used as <alias>`)
   .action((alias, path) => {
-    if (!alias) {
-      return console.log("Invalid args. `ss add [alias] [path]`");
-    }
-
-    let missingAlias = false;
     if (!path) {
-      missingAlias = true;
+      alias = undefined;
       path = alias;
     }
 
     path = p.resolve(path);
 
-    try {
-      fs.existsSync(path);
-      fs.readdirSync(path);
-    } catch (err) {
-      return console.log(`Target folder "${path}" doesn's exist, or not a directory`);
-    }
+    if (!exists(path)) return error(`Target path "${path}" doesn's exist`);
+    if (!isDirectory(path)) return error(`Target path "${path}" is not a directory`);
 
-    if (missingAlias) {
-      alias = p.basename(path);
-    }
-
+    if (!alias) alias = p.basename(path);
     alias = alias.replace(/\s/g, "_");
 
-    p.resolve(AVAILABLE, alias);
+    if (alias.includes('/')) {
+      return error('Alias must not contain slash "/" charactor')
+    }
 
+    const source = p.resolve(path);
+    const target = p.resolve(AVAILABLE, alias);
     try {
-      fs.symlinkSync(p.resolve(path), p.resolve(AVAILABLE, alias), "dir");
+      fs.symlinkSync(source, target, "dir");
     } catch (err) {
-      return console.log("Create symlink fail");
+      if (err.code === "EEXIST") {
+        fs.unlinkSync(target);
+        fs.symlinkSync(source, target, "dir");
+      } else {
+        console.log(chalk`{red ERROR:} Unknow error`, err);
+      }
     }
   });
 
@@ -136,13 +136,14 @@ program
 program
   .command("serve")
   .alias("start")
+  .description('Start serving the "current" directory.')
   .action(() => {
     const server = http.createServer((request, response) => {
       return handler(request, response, {});
     });
 
     server.on("error", err => {
-      console.error(error(`Failed to serve: ${err.stack}`));
+      error(`Failed to serve: ${err.stack}`);
       process.exit(1);
     });
 
@@ -152,6 +153,15 @@ program
     });
   });
 
-if (_.isEmpty(program.parse(process.argv).args) && process.argv.length === 2) {
-  program.help();
+function main() {
+  init();
+  const args = program.parse(process.argv).args;
+  if (_.isEmpty(args) && process.argv.length === 2) {
+    program.help();
+  } else if (typeof args[args.length - 1] === "string") {
+    error(`Unkown command ${args[0]}\n`);
+    program.help();
+  }
 }
+
+main();
