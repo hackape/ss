@@ -125,6 +125,9 @@ program
   .command("use <alias>")
   .description('Set <alias> as the "current" directory for static serving.')
   .action(alias => {
+    try {
+      fs.unlinkSync(CURRENT);
+    } catch (err) {}
     fs.symlinkSync(getRealpath(alias), CURRENT, "dir");
   });
 
