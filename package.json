@@ -1,7 +1,7 @@
 {
   "name": "@hackape/ss",
   "version": "0.1.0",
-  "description": "Static file server",
+  "description": "Simple static server cli",
   "files": [
     "bin"
   ],
@@ -10,10 +10,9 @@
     "ss": "./bin/ss.js"
   },
   "keywords": [
-    "now",
     "serve",
-    "micro",
-    "http-server"
+    "http-server",
+    "static-server"
   ],
   "author": "hackape",
   "license": "MIT",
