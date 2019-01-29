@@ -1,6 +1,6 @@
 {
   "name": "@hackape/ss",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Simple static server cli",
   "files": [
     "bin",
