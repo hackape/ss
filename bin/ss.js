@@ -29,7 +29,7 @@ function getAliasRealpath(alias) {
   try {
     return fs.realpathSync(path);
   } catch (err) {
-    return "(null)";
+    return null;
   }
 }
 
@@ -68,22 +68,26 @@ program
       const longest = aliases.reduce((a, b) => {
         if (a.length > b.length) return a;
         return b;
-      });
+      }, "");
 
       const aliasFixWidth = longest.length + 1;
 
-      return aliases.reduce((acc, alias) => {
+      const lines = aliases.map(alias => {
         const realpath = getAliasRealpath(alias);
-        acc += `${padded(alias, aliasFixWidth)}-> ${realpath}\n`;
-        return acc;
-      }, "");
+        return `${padded(alias, aliasFixWidth)}-> ${realpath}`;
+      });
+
+      if (lines.length) {
+        return (chalk`{green Aliases:}\n${lines.join('\n')}`)
+      } else {
+        return (chalk`{grey No aliases found}`)
+      }
     };
 
     console.log(chalk`
 {green Current target: }
 ${getCurrentPath()}
 
-{green Aliases:}
 ${printAliases()}
 `);
   });
@@ -152,7 +156,41 @@ program
         return console.log(chalk`{red ERROR:} Unknow error`, err);
       }
     }
-    return console.log(chalk`{green Add:} ${alias} -> ${getAliasRealpath(alias)}`);
+    return console.log(chalk`{green Add:} ${alias} -> ${getAliasRealpath(alias)}\n`);
+  });
+
+program
+  .command("remove [alias]")
+  .description("Remove specified [alias], or [--all] to remove all, or [--prune] to remove invalid alias")
+  .option("-A, --all", "Remove all aliases")
+  .option("-P, --prune", "Remove all invalid aliases")
+  .action((alias, options) => {
+    if (!alias) {
+      if (options.all) {
+        const aliases = fs.readdirSync(AVAILABLE);
+        aliases.forEach(alias => {
+          fs.unlinkSync(p.resolve(AVAILABLE, alias));
+        });
+        return console.log(chalk`{green Remove:} All aliases removed\n`);
+      } else if (options.prune) {
+        const aliases = fs.readdirSync(AVAILABLE);
+        const removable = aliases.filter(alias => {
+          const realpath = getAliasRealpath(alias);
+          if (!realpath) return true;
+          return false;
+        });
+        if (!removable.length) return console.log(chalk`{yellow Remove:} No invalid alias found, abort\n`)
+        removable.forEach(alias => {
+          fs.unlinkSync(p.resolve(AVAILABLE, alias));
+        });
+        console.log(chalk`{green Remove:} Prune unavailable aliases\n`);
+        return console.log(removable.join('\n'));
+      }
+    } else {
+      const path = p.resolve(AVAILABLE, alias);
+      if (!exists(path)) return error(`Path ${path} doesn't exist\n`);
+      fs.unlinkSync(path);
+    }
   });
 
 function main() {
