@@ -115,8 +115,13 @@ program
 program
   .command("serve")
   .alias("start")
+  .option("-p, --port", "Specify port number")
   .description('Start serving the "current" directory.')
-  .action(() => {
+  .action((_port) => {
+    let port = 5000;
+    if (typeof _port === 'string') {
+      if (Number.isInteger(Number(_port))) port = _port;
+    }
     const server = http.createServer((request, response) => {
       return handler(request, response, {});
     });
@@ -126,8 +131,8 @@ program
       process.exit(1);
     });
 
-    server.listen(8888, () => {
-      print(info("Listening on port :8888"));
+    server.listen(port, () => {
+      print(info(`Listening on port ${port}`));
       registerShutdown(() => {
         print(`\n${info("Gracefully shutting down. Please wait...")}`);
 
