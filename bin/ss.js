@@ -122,8 +122,14 @@ program
     if (typeof _port === 'string') {
       if (Number.isInteger(Number(_port))) port = _port;
     }
+
+    const currentPath = getCurrentPath();
+    if (!currentPath) return print(error('No "current" target directory set'));
     const server = http.createServer((request, response) => {
-      return handler(request, response, {});
+      return handler(request, response, {
+        public: currentPath,
+        cleanUrls: false,
+      });
     });
 
     server.on("error", err => {
