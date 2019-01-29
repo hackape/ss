@@ -6,7 +6,7 @@ const p = require("path");
 const fs = require("fs");
 const chalk = require("chalk");
 const http = require("http");
-const handler = require("serve-handler");
+const serveHandler = require("serve-handler");
 
 const homedir = require("os").homedir();
 
@@ -125,12 +125,20 @@ program
 
     const currentPath = getCurrentPath();
     if (!currentPath) return print(error('No "current" target directory set'));
-    const server = http.createServer((request, response) => {
-      return handler(request, response, {
+
+    function handler(request, response) {
+      const currentPath = getCurrentPath();
+      if (!currentPath) {
+        print(error('No "current" target directory set'));
+        return res.status(404).send('No "current" target directory set');
+      }
+      return serveHandler(request, response, {
         public: currentPath,
         cleanUrls: false,
       });
-    });
+    }
+
+    const server = http.createServer(handler);
 
     server.on("error", err => {
       print(error(`Failed to serve: ${err.stack}`));
