@@ -3,7 +3,8 @@
   "version": "0.1.1",
   "description": "Simple static server cli",
   "files": [
-    "bin"
+    "bin",
+    "README.md"
   ],
   "repository": "hackape/ss",
   "bin": {
