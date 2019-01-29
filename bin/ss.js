@@ -21,7 +21,11 @@ const error = message => console.error(chalk`{red ERROR:} ${message}`);
 
 function getCurrentPath() {
   const path = p.resolve(CURRENT);
-  return fs.realpathSync(path);
+  try {
+    return fs.realpathSync(path);
+  } catch (err) {
+    return null;
+  }
 }
 
 function getAliasRealpath(alias) {
@@ -96,10 +100,13 @@ program
   .command("use <alias>")
   .description('Set <alias> as the "current" directory for static serving.')
   .action(alias => {
-    try {
+    if (exists(CURRENT)) {
       fs.unlinkSync(CURRENT);
-    } catch (err) {}
+    }
+    const path = getAliasRealpath(alias);
+    if (!path) return error(`Alias ${alias} does not exist, or is invalid\n`)
     fs.symlinkSync(getAliasRealpath(alias), CURRENT, "dir");
+    return console.log(chalk`{green Use:} now using ${alias} -> ${path}`)
   });
 
 program
