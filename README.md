@@ -9,7 +9,7 @@
 `ss` is a CLI tool meant to be installed globally:
 
 ```
-yarn global add serve
+yarn global add @hackape/ss
 ```
 
 ### `add` command
