@@ -107,7 +107,8 @@ program
       fs.unlinkSync(CURRENT);
     }
     const path = getAliasRealpath(alias);
-    if (!path) return print(error(`Alias ${alias} does not exist, or is invalid\n`));
+    if (!path)
+      return print(error(`Alias ${alias} does not exist, or is invalid\n`));
     fs.symlinkSync(getAliasRealpath(alias), CURRENT, "dir");
     return print(chalk`{green Use:} now using ${alias} -> ${path}`);
   });
@@ -117,9 +118,9 @@ program
   .alias("start")
   .option("-p, --port", "Specify port number")
   .description('Start serving the "current" directory.')
-  .action((_port) => {
+  .action(_port => {
     let port = 5000;
-    if (typeof _port === 'string') {
+    if (typeof _port === "string") {
       if (Number.isInteger(Number(_port))) port = _port;
     }
 
@@ -132,9 +133,25 @@ program
         print(error('No "current" target directory set'));
         return res.status(404).send('No "current" target directory set');
       }
+
       return serveHandler(request, response, {
         public: currentPath,
         cleanUrls: false,
+        headers: [
+          {
+            source: "**/*.js",
+            headers: [
+              {
+                key: "Access-Control-Allow-Origin",
+                value: "*"
+              },
+              {
+                key: "Access-Control-Allow-Methods",
+                value: "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+              }
+            ]
+          }
+        ]
       });
     }
 
@@ -162,7 +179,9 @@ program
 
 program
   .command("add <alias|path> [path]")
-  .description(`Add a target folder. If only <path> is given, last path component will be used as <alias>`)
+  .description(
+    `Add a target folder. If only <path> is given, last path component will be used as <alias>`
+  )
   .action((alias, path) => {
     if (!path) {
       alias = undefined;
@@ -171,8 +190,10 @@ program
 
     path = p.resolve(path);
 
-    if (!exists(path)) return print(error(`Target path "${path}" doesn's exist`));
-    if (!isDirectory(path)) return print(error(`Target path "${path}" is not a directory`));
+    if (!exists(path))
+      return print(error(`Target path "${path}" doesn's exist`));
+    if (!isDirectory(path))
+      return print(error(`Target path "${path}" is not a directory`));
 
     if (!alias) alias = p.basename(path);
     alias = alias.replace(/\s/g, "_");
@@ -199,7 +220,9 @@ program
 
 program
   .command("remove [alias]")
-  .description("Remove specified [alias], or [--all] to remove all, or [--prune] to remove invalid alias")
+  .description(
+    "Remove specified [alias], or [--all] to remove all, or [--prune] to remove invalid alias"
+  )
   .option("-A, --all", "Remove all aliases")
   .option("-P, --prune", "Remove all invalid aliases")
   .action((alias, options) => {
@@ -217,7 +240,8 @@ program
           if (!realpath) return true;
           return false;
         });
-        if (!removable.length) return print(chalk`{yellow Remove:} No invalid alias found, abort\n`);
+        if (!removable.length)
+          return print(chalk`{yellow Remove:} No invalid alias found, abort\n`);
         removable.forEach(alias => {
           fs.unlinkSync(p.resolve(AVAILABLE, alias));
         });
